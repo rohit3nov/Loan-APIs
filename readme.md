@@ -19,8 +19,9 @@
 
     `$ php artisan passport:install`
 
-## Postman API collection link
+## Paste below link in Postman(`File->Import->Link`) to get APIs
 `https://www.getpostman.com/collections/5d38a316320c9e53c0f7`
+
 
 ## API Details
 
