@@ -51,8 +51,8 @@ Payments
     usename : root
     password: root_pass
 
-## Run test cases
-* `$ composer run test`
+## Run test cases inside php-fpm container
 
-## Update project via loan:update
-* `$ php artisan loan:update`
+Enter container using `$ docker exec -it php-fpm /bin/bash` then
+
+`$ composer run test`
