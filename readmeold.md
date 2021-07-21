@@ -2,9 +2,18 @@
 
 ## How to Setup
 1. Copy `.env.example` to `.env` using `$ cp .env.example .env`
-2. Build images and start docker containers  using `$ sh setup.sh`
+2. Build images and start docker containers in docker folder
+`$ cd docker` then
 
-    <i>Note: Above step would take little longer. If any errors encountered in above step, please rerun the setup file</i>
+    `$ export LD_LIBRARY_PATH=/usr/local/lib`
+
+    `$ docker-compose build  --build-arg USER_ID=$(id -u) php-fpm`
+
+    `$ docker-compose build  --build-arg USER_ID=$(id -u) database`
+
+    `$ docker-compose up -d`
+
+    Note: If any errors encountered in above commands, please rerun the command
 
 3. Install Dependencies, run laravel and oAuth migrations in php-fpm container.
 
@@ -16,11 +25,7 @@
 
     `$ php artisan passport:install`
 
-    `$ exit`
-
-## Postman API Collection
-Import below link in Postman(`File->Import->Link`) to get APIs
-
+## Paste below link in Postman(`File->Import->Link`) to get APIs
 `https://www.getpostman.com/collections/5d38a316320c9e53c0f7`
 
 
