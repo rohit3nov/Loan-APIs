@@ -1,7 +1,7 @@
 # Loan APIs
 
 ## How to Setup
-1. Copy `.env.example` to `.env`
+1. Copy `.env.example` to `.env` using `$ cp .env.example .env`
 2. Build images and start docker containers in docker folder
 `$ cd docker` then
 

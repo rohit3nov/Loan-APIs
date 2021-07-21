@@ -28,7 +28,7 @@ class CreateLoansTable extends Migration
             $table->longText('remarks')->nullable();
             $table->timestamp('date_contract_start')->nullable();
             $table->timestamp('date_contract_end')->nullable();
-            $table->tinyInteger('status')->default('-1');
+            $table->tinyInteger('status')->default('0')->comment('0:inreview,-1:rejected,1:approved');
             $table->timestamps();
             $table->softDeletes();
         });
