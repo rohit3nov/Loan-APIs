@@ -3,8 +3,6 @@
 namespace Tests\Feature;
 
 use App\Components\CoreComponent\Modules\Loan\Loan;
-use App\Components\CoreComponent\Modules\Repayment\Repayment;
-use App\Components\CoreComponent\Modules\Repayment\RepaymentFrequency;
 use App\Components\CoreComponent\Modules\Repayment\RepaymentRepository;
 use Carbon\Carbon;
 use Illuminate\Contracts\Console\Kernel;

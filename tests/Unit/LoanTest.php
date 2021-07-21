@@ -21,6 +21,5 @@ class LoanTest extends TestCase
     {
         $amount = LoanCalculator::calculateWeeklyRepayment(2000, 9, 1);
         $this->assertEquals((int) $amount, 502);
-
     }
 }
