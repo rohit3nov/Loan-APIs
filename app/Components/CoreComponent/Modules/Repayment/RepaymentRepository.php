@@ -2,6 +2,7 @@
 namespace App\Components\CoreComponent\Modules\Repayment;
 
 use App\Components\CoreComponent\Modules\Loan\Loan;
+use App\Components\CoreComponent\Modules\Loan\LoanStatus;
 use App\Helpers\LoanCalculator;
 use Validator;
 
@@ -58,6 +59,10 @@ class RepaymentRepository
      */
     public function generateRepayments(&$bag, Loan $loan)
     {
+        if (!LoanStatus::isApproved($loan->status)) {
+            $bag = ["message" => trans("default.loan_not_approved"),];
+            return false;
+        }
         $calData = [$loan->amount, $loan->interest_rate, $loan->duration,];
         $amount = LoanCalculator::calculateWeeklyRepayment(...$calData); // logic to calculate weekly amount
         $startDate = $loan->date_contract_start;

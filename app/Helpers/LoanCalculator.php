@@ -12,11 +12,8 @@ class LoanCalculator
      * @param float $monthlyInterestRate
      * @param float $repaymentMonthNumber
      */
-    public static function calculateWeeklyRepayment(
-        float $loanAmount,
-        float $monthlyInterestRate,
-        float $repaymentMonthNumber
-    ) {
+    public static function calculateWeeklyRepayment(float $loanAmount, float $monthlyInterestRate, float $repaymentMonthNumber)
+    {
         $realMonthlyInterestRate = $monthlyInterestRate / (100*52);
         $repaymentWeekNumber = $repaymentMonthNumber * 4;
         $result = $loanAmount * $realMonthlyInterestRate * \pow(1 + $realMonthlyInterestRate, $repaymentWeekNumber);
