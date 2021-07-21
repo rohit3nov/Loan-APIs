@@ -22,7 +22,7 @@ class CreateRepaymentsTable extends Migration
             $table->boolean('active')->default(true);
             $table->integer('loan_id', false, true);
             $table->foreign('loan_id')->references('id')->on('loans');
-            $table->double('amount', 18, 8)->unsigned();
+            $table->double('amount', 18, 2)->unsigned();
             $table->integer('payment_status')->unsigned();
             $table->timestamp('due_date')->nullable();
             $table->timestamp('date_of_payment')->nullable();

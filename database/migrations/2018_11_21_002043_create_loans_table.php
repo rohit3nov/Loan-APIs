@@ -21,11 +21,10 @@ class CreateLoansTable extends Migration
             $table->boolean('active')->default(true);
             $table->integer('user_id', false, true);
             $table->foreign('user_id')->references('id')->on('users');
-            $table->double('amount', 18, 8)->unsigned();
+            $table->double('amount', 18, 2)->unsigned();
             $table->integer('duration')->unsigned();
             $table->integer('repayment_frequency')->unsigned();
             $table->double('interest_rate', 3, 2)->unsigned();
-            $table->double('arrangement_fee', 18, 8)->unsigned();
             $table->longText('remarks')->nullable();
             $table->timestamp('date_contract_start')->nullable();
             $table->timestamp('date_contract_end')->nullable();
