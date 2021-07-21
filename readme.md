@@ -1,9 +1,11 @@
 # Loan APIs
 
 ## How to Setup
-1. Install Dependencies using composer `$ composer install`
+1. Copy `.env.example` to `.env`
 2. Build images and start docker containers in docker folder
 `$ cd docker` then
+
+    `$ export LD_LIBRARY_PATH=/usr/local/lib`
 
     `$ docker-compose build  --build-arg USER_ID=$(id -u) php-fpm`
 
@@ -11,9 +13,13 @@
 
     `$ docker-compose up -d`
 
-3. Run Laravel and passport migrations in php-fpm container.
+    Note: If any errors encountered in above commands, please rerun the command
+
+3. Install Dependencies, run laravel and oAuth migrations in php-fpm container.
 
    Enter container using `$ docker exec -it php-fpm /bin/bash` then
+
+    `$ composer install`
 
     `$ php artisan migrate`
 
@@ -38,6 +44,12 @@ Loan
 Payments
 - Get Repayment Details
 - Pay Repayment
+
+## phpmyadmin creds
+
+    url     : http://localhost:3307/
+    usename : root
+    password: root_pass
 
 ## Run test cases
 * `$ composer run test`
