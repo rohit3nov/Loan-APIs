@@ -36,10 +36,10 @@ class LoanRepository
      */
     public function createLoan(&$bag, $data = [])
     {
-        if (!RepaymentFrequency::isValidType($data['repayment_frequency'])) {
-            $bag = ['message' => trans('default.repayment_frequency_type_invalid')];
-            return null;
-        }
+        // if (!RepaymentFrequency::isValidType($data['repayment_frequency'])) {
+        //     $bag = ['message' => trans('default.repayment_frequency_type_invalid')];
+        //     return null;
+        // }
         $loan = new Loan();
         $dateContractStart = new Carbon($data['date_contract_start']);
         $dateContractEnd = $dateContractStart->copy()->addMonth($data['duration']);
@@ -47,9 +47,9 @@ class LoanRepository
             'user_id' => $data['user_id'],
             'amount' => $data['amount'],
             'duration' => $data['duration'],
-            'repayment_frequency' => $data['repayment_frequency'],
+            // 'repayment_frequency' => $data['repayment_frequency'],
+            'repayment_frequency' => RepaymentFrequency::WEEKLY['id'],
             'interest_rate' => $data['interest_rate'],
-            'arrangement_fee' => $data['arrangement_fee'],
             'remarks' => $data['remarks'],
             'date_contract_start' => $dateContractStart . '',
             'date_contract_end' => $dateContractEnd . '',

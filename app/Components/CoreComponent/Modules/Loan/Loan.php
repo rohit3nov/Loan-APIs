@@ -22,7 +22,6 @@ class Loan extends Model
         'duration',
         'repayment_frequency',
         'interest_rate',
-        'arrangement_fee',
         'remarks',
         'date_contract_start',
         'date_contract_end',

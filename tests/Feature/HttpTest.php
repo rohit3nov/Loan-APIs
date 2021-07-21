@@ -107,7 +107,6 @@ class HttpTest extends TestCase
                 'duration' => $duration,
                 'repayment_frequency' => RepaymentFrequency::MONTHLY['id'],
                 'interest_rate' => 0.1,
-                'arrangement_fee' => 100,
                 'remarks' => null,
                 'date_contract_start' => $date . '',
             ];

@@ -8,7 +8,6 @@ return [
     "loan_amount_must_numeric" => "Loan_amount_must_numeric",
     "loan_duration_required" => "Loan_duration_required",
     "loan_duration_must_numeric" => "Loan_duration_must_numeric",
-    "loan_repay_freq_required" => "Loan_repay_freq_required",
     "loan_repay_freq_must_numeric" => "Loan_repay_freq_must_numeric",
     "loan_int_rate_required" => "Loan_int_rate_required",
     "loan_int_rate_must_numeric" => "Loan_int_rate_must_numeric",
