@@ -1,46 +1,27 @@
 <?php
 
-namespace App\Components\CoreComponent\Modules\Loan;
+namespace App\Components\CoreComponent\Modules\Loan\Requests;
 
-use App\Rules\RepaymentFrequencyTypeRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 /*
  * Author:  Rohit Pandita(rohit3nov@gmail.com)
  */
-class LoanRequest extends FormRequest
+class CreateLoanApiRequest extends FormRequest
 {
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
     public function rules()
-    {
-        return static::staticRules();
-    }
-
-    public static function staticRules()
     {
         return [
             "amount" => "required|numeric|min:1",
             "duration" => "required|numeric|min:1",
-            // "repayment_frequency" => ["required", "numeric", new RepaymentFrequencyTypeRule()],
             "interest_rate" => "required|numeric",
             "date_contract_start" => "required",
         ];
     }
 
-    /**
-     * Get the validation custom error message.
-     *
-     * @return array
-     */
     public function messages()
-    {
-        return static::staticMessages();
-    }
-    public static function staticMessages()
     {
         return [
             "amount.required" => trans("default.loan_amount_required"),
@@ -53,5 +34,13 @@ class LoanRequest extends FormRequest
             "interest_rate.numeric" => trans("default.loan_int_rate_must_numeric"),
             "date_contract_start.required" => trans("default.loan_cont_start_required"),
         ];
+    }
+
+    protected function failedValidation(Validator $validator) {
+        throw new HttpResponseException(response()->json([
+            "status" => "error",
+            "message" => trans("default.validation_error"),
+            "errors" => $validator->errors()->first(),
+        ], 400));
     }
 }

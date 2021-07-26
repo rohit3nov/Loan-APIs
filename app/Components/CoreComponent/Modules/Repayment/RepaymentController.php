@@ -5,87 +5,49 @@ namespace App\Components\CoreComponent\Modules\Repayment;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
-// TODO: get repayment of client
-// TODO: get over due repayment
-// TODO: get up coming
-
-/*
- * Author: Rohit Pandita(rohit3nov@gmail.com)
- */
 class RepaymentController extends Controller
 {
-    private $repository;
+    private $repaymentService;
 
-    public function __construct(RepaymentRepository $repaymentRepository)
+    public function __construct(RepaymentService $repaymentService)
     {
-        $this->repository = $repaymentRepository;
+        $this->repaymentService = $repaymentService;
     }
 
-    /**
-     * Pay for repayment
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param \App\Components\CoreComponent\Modules\Repayment\Repayment::id $id
-     */
-    public function apiPay(Request $request, $id)
+    public function apiGetRepayment($id) : JsonResponse
+    {
+        try {
+            $repayment = $this->repaymentService->getRepaymentDetails($id);
+            return response()->json(["status" => "success","repayment" => new RepaymentResource($repayment)], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['status'=>'failure','message' => $e->getMessage()],$e->getCode());
+        }
+    }
+
+    public function apiUpdateRepayment(Request $request, $id)
     {
         DB::beginTransaction();
-        $repayment = Repayment::lockForUpdate()->find($id);
-        if (!$repayment) {
-            DB::rollBack();
-            return response()->json([
-                "status" => "error",
-                "message" => trans("default.repayment_not_found"),
-            ], 404);
-        }
-        // Ensure not already paid
-        if (RepaymentStatus::isPaid($repayment->payment_status)) {
-            DB::rollBack();
-            return response()->json([
-                "status" => "error",
-                "message" => trans("default.repayment_already_paid"),
-            ], 400);
-        }
         try {
-            $repayment->payment_status = RepaymentStatus::PAID["id"];
-            $repayment->date_of_payment = \Carbon\Carbon::now();
+            // check if repayment exists and is not already paid
+            $repayment = $this->repaymentService->checkRepaymentStatus($id);
         } catch (\Exception $e) {
-            return response()->json([
-                "status" => "error",
-                "error" => $e->getMessage(),
-            ], 500);
+            DB::rollBack();
+            return response()->json(['status'=>'failure','message' => $e->getMessage()],$e->getCode());
         }
-        $repayment->remarks = $request->get("remarks");
-        try {
-            if ($repayment->save()) {
-                DB::commit();
-                return response()->json([
-                    "status" => "success",
-                    "repayment" => new RepaymentResource($repayment),
-                ], 200);
-            }
-        } catch (\Exception $e) {}
-        DB::rollBack();
-        return response()->json([
-            "status" => "error",
-            "error" => trans("default.saving_fail"),
-        ], 500);
-    }
 
-    /**
-     * Get repayment list
-     * Get repayment if repayment"s id is specified
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param \App\Components\CoreComponent\Modules\Repayment\Repayment::id $id
-     */
-    public function apiGetRepayment(Request $request, $id)
-    {
-        $repayment = Repayment::active()->find($id);
-        if (!$repayment) {
-            return response()->json(["message" => trans("default.repayment_not_found")], 404);
+        try {
+            // mark repayment as paid
+            $this->repaymentService->saveRepayment($repayment,['payment_status'  => RepaymentStatus::PAID["id"],'date_of_payment' => \Carbon\Carbon::now(),'remarks' => $request->input("remarks")]);
+            DB::commit();
+            return response()->json(["status" => "success","repayment" => new RepaymentResource($repayment->refresh())], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error(__FUNCTION__.': '.$e);
+           return response()->json(['status'=>'failure','message' => $e->getMessage()],$e->getCode());
         }
-        return new RepaymentResource($repayment);
     }
 }

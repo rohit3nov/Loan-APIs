@@ -2,109 +2,67 @@
 
 namespace App\Components\CoreComponent\Modules\Loan;
 
-use App\Components\CoreComponent\Modules\Client\Client;
-use App\Components\CoreComponent\Modules\Repayment\RepaymentFrequency;
-use App\Components\CoreComponent\Modules\Repayment\RepaymentRepository;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
-use Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
-/*
- * Author: Rohit Pandita(rohit3nov@gmail.com)
- */
 class LoanController extends Controller
 {
-    private $repository;
+    private $loanService;
 
-    public function __construct(LoanRepository $loanRepository)
+    public function __construct(LoanService $loanService)
     {
-        $this->repository = $loanRepository;
+        $this->loanService = $loanService;
     }
 
-    /**
-     * Create loan via api
-     *
-     * @param \Illuminate\Http\Request $request
-     */
-    public function apiCreateLoan(Request $request)
+    public function apiCreateLoan(Requests\CreateLoanApiRequest $request) : JsonResponse
     {
-        $data = $request->all();
-        $data['user_id'] = $request->user()->id;
-        $validator = Validator::make($data, LoanRequest::staticRules(), LoanRequest::staticMessages());
-        if ($validator->fails()) {
-            return response()->json(["status" => "error","error_type" => trans("default.validation_error"),"error_msg" => $validator->errors()->first(),], 400);
-        }
-        $loan = $this->repository->createLoan($bag, $data);
-        if (!$loan) {
-            return response()->json(["status" => "error","message" => $bag['message'],], 500);
+        try {
+            $loan = $this->loanService->createLoan(array_add($request->all(),'user_id',$request->user()->id));
+        } catch (\Exception $e) {
+            Log::error(__FUNCTION__.': '.$e);
+            return response()->json(['status'=>'failure','message' => 'Unable to raise loan request due to some technical issue. Please try again after some time!'],500);
         }
         return response()->json(["status" => "success","loan" => new LoanResource($loan->refresh()),], 200);
     }
 
-    public function apiUpdateLoan(Request $request)
+    public function apiUpdateLoan(Requests\UpdateLoanApiRequest $request) : JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            "loan_id" => "required|numeric",
-            "status"  => ["required","numeric",new \App\Rules\LoanStatusRule()],
-        ], []);
-
-        if ($validator->fails()) {
-            return response()->json([
-                "status" => "failed",
-                "error_type" => trans("default.validation_error"),
-                "error_msg" => $validator->errors()->first(),
-            ], 400);
+        // check if loan exists and is not already approved/rejected
+        try {
+            $loan = $this->loanService->checkLoanStatus($request->loan_id);
+        } catch (\Exception $e) {
+            return response()->json(['status'=>'failure','message' => $e->getMessage()],$e->getCode());
         }
 
-        DB::beginTransaction();
-        $loan = Loan::active()->find($request->loan_id);
-        if (!$loan) {
-            return response()->json(['message' => trans("default.loan_not_found")], 404);
-        }
-        // don't proceed if loan already approved or rejected
-        if ($loan->status !== 0) {
-            $status = LoanStatus::isApproved($loan->status) ? LoanStatus::APPROVED['name']: LoanStatus::REJECTED['name'];
-            return response()->json(['message' => "Loan already $status."], 404);
-        }
-        // update loan status
-        $loan->status = $request->status;
-        if (!$loan->save()) {
+        // update loan status and generate repayments if approved
+        try {
+            DB::beginTransaction();
+            $this->loanService->updateLoan($request->loan_id,['status'=>$request->status]);
+            $this->loanService->generateLoanRepayments($loan->refresh());
+            DB::commit();
+            return response()->json(["status" => "success","loan" => new LoanResource($loan->refresh())], 200);
+        } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => trans("default.loan_cannot_save")], 404);
+            Log::error(__FUNCTION__.': '.$e);
+            return response()->json(['status'=>'failure','message' => $e->getMessage()],$e->getCode());
         }
-        // use repayment repository to generate repayment base on loan
-        $repaymentRepository = new RepaymentRepository();
-        if (!$repaymentRepository->generateRepayments($bag, $loan)) {
-            DB::rollBack();
-            return response()->json(["status" => "error","message" => $bag['message'],], 500);
-        }
-        DB::commit();
-        return response()->json(["status" => "success","loan" => new LoanResource($loan->refresh()),], 200);
     }
 
-    /**
-     * Get loan list
-     * Get loan if loan"s id is specified
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param \App\Components\CoreComponent\Modules\Loan\Loan:id $id
-     */
     public function apiGetLoan(Request $request, $id = null)
     {
         if (\is_null($id)) {
-            $data = [
-                "perPage" => $request->get("perPage") ?? 20,
-                "user_id" => $request->user()->id
-            ];
-            return new LoanCollection($this->repository->filterLoan($data));
+            $loans = $this->loanService->getUserLoans($request->user()->id, $request->get("perPage") ?? 20);
+            return new LoanCollection($loans);
         }
-        $loan = Loan::active()->find($id);
-        if (!$loan) {
-            return response()->json(['message' => trans("default.loan_not_found")], 404);
-        }
-        if ($loan) {
-            return new LoanResource($loan);
+        try {
+            $loan = $this->loanService->getLoanDetails($id);
+            return response()->json(["status" => "success","loan" => new LoanResource($loan)], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['status'=>'failure','message' => $e->getMessage()],$e->getCode());
         }
     }
 }

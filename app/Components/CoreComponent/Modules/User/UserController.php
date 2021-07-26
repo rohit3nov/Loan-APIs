@@ -1,53 +1,38 @@
 <?php
-
 namespace App\Components\CoreComponent\Modules\User;
 
-use Illuminate\Http\Request;
-// use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use App\User;
-use Validator;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
-    public function apiRegisterUser(Request $request)
+    private $userService;
+
+    public function __construct(UserService $userService)
     {
-        $validator = Validator::make($request->all(), UserRequest::staticRules(), UserRequest::staticMessages());
-        if ($validator->fails()) {
-            return response()->json([
-                "status" => "error",
-                "message" => trans("default.validation_error"),
-                "errors" => $validator->errors()->first(),
-            ], 400);
+        $this->userService = $userService;
+    }
+    public function apiRegisterUser(Requests\SignUpApiRequest $request) : JsonResponse
+    {
+        try {
+            $user = $this->userService->createUser($request->only('name','email','password'));
+            $token = $this->userService->generateOAuthAccessToken($user);
+        } catch (\Exception $e) {
+            Log::error(__FUNCTION__.': '.$e->getMessage());
+            return response()->json(['status'=>'failure','message' => 'Unable to register new user.Technical issue occured. Please try again after some time!'],500);
         }
-
-        $request['password'] = bcrypt($request->password);
-
-        $user = User::create($request->only('name','email','password'));
-
-        $accessToken = $user->createToken('authToken')->accessToken;
-
-        return response([ 'user' => $user, 'access_token' => $accessToken]);
+        return response()->json(['status'=>'success','user' => $user, 'access_token' => $token],200);
     }
 
-    public function apiLoginUser(Request $request)
+    public function apiLoginUser(Requests\LoginApiRequest $request) : JsonResponse
     {
-        $validator = Validator::make($request->all(), ['email' => 'email|required','password' => 'required'],[]);
-        if ($validator->fails()) {
-            return response()->json([
-                "status" => "error",
-                "message" => trans("default.validation_error"),
-                "errors" => $validator->errors()->first(),
-            ], 400);
+        try {
+            $user = $this->userService->login($request->only('email','password'));
+            $token = $this->userService->generateOAuthAccessToken($user);
+        } catch (\Exception $e) {
+            return response()->json(['status'=>'failure','message' => $e->getMessage()],401);
         }
-
-        if (!auth()->attempt($request->only('email','password'))) {
-            return response(['message' => 'Invalid Credentials']);
-        }
-
-        $accessToken = auth()->user()->createToken('authToken')->accessToken;
-
-        return response(['user' => auth()->user(), 'access_token' => $accessToken]);
-
+        return response()->json(['status'=>'success','user' => $user, 'access_token' => $token],200);
     }
 }

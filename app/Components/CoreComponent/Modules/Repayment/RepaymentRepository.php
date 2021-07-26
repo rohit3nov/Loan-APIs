@@ -1,90 +1,61 @@
 <?php
 namespace App\Components\CoreComponent\Modules\Repayment;
 
-use App\Components\CoreComponent\Modules\Loan\Loan;
-use App\Components\CoreComponent\Modules\Loan\LoanStatus;
-use App\Helpers\LoanCalculator;
-use Validator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
-/*
- * Author:  Rohit Pandita(rohit3nov@gmail.com)
- */
 class RepaymentRepository
 {
-    /**
-     * Create Repayment
-     *
-     * @param array $data
-     * @return \App\Components\CoreComponent\Modules\Repayment\Repayment|null
-     */
-    public function createRepayment(&$bag, $data = [])
+    public function get(int $repaymentId) : Repayment
     {
-        $validator = Validator::make($data, RepaymentRequest::staticRules(),RepaymentRequest::staticMessages());
-        if ($validator->fails()) {
-            $bag = [
-                "message" => trans("default.validation_error"),
-                "errors" => $validator->errors()->first(),
-            ];
-            return null;
+        $repayment = Repayment::active()->find($repaymentId);
+        if (!$repayment) {
+            throw new ModelNotFoundException(trans("default.repayment_not_found"),404);
         }
-
-        // ensure no duplicate repayment
-        if (Repayment::where('loan_id', $data['loan_id'])->where('due_date', $data['due_date'])->exists()) {
-            $bag = ["message" => trans("default.repayment_exist"),];
-            return null;
-        }
-
-        $repayment = new Repayment();
-        $repayment->fill([
-            'loan_id' => $data['loan_id'],
-            'amount' => $data['amount'],
-            'payment_status' => $data['payment_status'],
-            'due_date' => $data['due_date'],
-            'date_of_payment' => $data['date_of_payment'],
-            'remarks' => $data['remarks'],
-        ]);
-        if ($repayment->save()) {
-            return $repayment;
-        }
-        $bag = ["message" => trans("default.saving_fail"),];
-        return null;
+        return $repayment;
     }
 
-    /**
-     * Generate Repayments
-     *
-     * @param array $bag
-     * @param \App\Components\CoreComponent\Modules\Loan\Loan $loan
-     * @return boolean
-     */
-    public function generateRepayments(&$bag, Loan $loan)
+    public function getLocked(int $repaymentId) : Repayment
     {
-        if (!LoanStatus::isApproved($loan->status)) {
-            $bag = ["message" => trans("default.loan_not_approved"),];
-            return false;
+        $repayment = Repayment::sharedLock()->active()->find($repaymentId);
+        if (!$repayment) {
+            throw new ModelNotFoundException(trans("default.repayment_not_found"),404);
         }
-        $calData = [$loan->amount, $loan->interest_rate, $loan->duration,];
-        $amount = LoanCalculator::calculateWeeklyRepayment(...$calData); // logic to calculate weekly amount
-        $startDate = $loan->date_contract_start;
-        $endDate = $loan->date_contract_end;
-        $dueDate = $startDate->copy();
-        while (true) {
-            $dueDate = $dueDate->copy()->addDay(7); // add 7 days for weekly repayment
-            if ($dueDate->greaterThan($endDate)) {
-                break;
-            }
-            $data = array(
-                'loan_id' => $loan->id,
-                'amount' => $amount,
-                'payment_status' => RepaymentStatus::UNPAID["id"],
-                'due_date' => $dueDate . '',
-                'date_of_payment' => null,
-                'remarks' => null,
-            );
-            if (!$this->createRepayment($bag, $data)) {
-                return false;
-            }
+        return $repayment;
+    }
+
+    public function create(array $data) : void
+    {
+        $repayment = new Repayment();
+        $repayment->fill($data);
+        if (!$repayment->save()) {
+            throw new \Exception(trans("default.repayment_cannot_generate"),500);
         }
-        return true;
+    }
+
+    public function checkRepaymentByDueDate(int $loanId, \DateTime $dueDate) : bool
+    {
+        return Repayment::where('loan_id', $loanId)->where('due_date', $dueDate)->exists();
+    }
+
+    public function update(int $repaymentId, array $data = []) : void
+    {
+        try {
+            $affectedRows = Repayment::where('id',$repaymentId)->update($data);
+            if ($affectedRows === 0) {
+                throw new \Exception(trans("default.repayment_cannot_update"),500);
+            }
+        } catch (\Exception $e) {
+            throw new \Exception(trans("default.repayment_cannot_update"),500);
+        }
+    }
+
+    public function save(Repayment $repayment, array $data = []) : void
+    {
+        try {
+            $repayment->fill($data)->save();
+        } catch (\Exception $e) {
+            dd($e);
+            throw new \Exception(trans("default.repayment_cannot_update"),500);
+        }
     }
 }

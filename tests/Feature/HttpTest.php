@@ -31,12 +31,13 @@ class HttpTest extends TestCase
         DB::beginTransaction();
 
         // Test user signup - success
-        $signUpResponse = $this->post('/api/v1/users/register', [
+        $signUpInput = array(
             'name' => 'test_user',
             'email' => 'testemail@gmail.com',
             'password' => 'test123',
             'password_confirmation' => 'test123',
-        ]);
+        );
+        $signUpResponse = $this->post('/api/v1/users/register',$signUpInput);
 
         $signUpResponse->assertStatus(200);
         $this->assertNotNull($signUpResponse->json('user'));
@@ -44,18 +45,18 @@ class HttpTest extends TestCase
 
         // Test user login - failure
         $failLoginResponse = $this->post('/api/v1/users/login', [
-            'email' => 'testemail@gmail.com',
-            'password' => 'test1234',
+            'email' => $signUpInput['email'],
+            'password' => $signUpInput['password'].'4',
         ]);
-        $failLoginResponse->assertStatus(200);
+        $failLoginResponse->assertStatus(401);
         $this->assertNotNull($failLoginResponse->json('message'));
-        $this->assertEquals('Invalid Credentials',$failLoginResponse->json('message'));
+        $this->assertEquals('Unable to login. Invalid Credentials.',$failLoginResponse->json('message'));
 
 
         // Test user login - success
         $successLoginResponse = $this->post('/api/v1/users/login', [
-            'email' => 'testemail@gmail.com',
-            'password' => 'test123',
+            'email' => $signUpInput['email'],
+            'password' => $signUpInput['password'],
         ]);
         $successLoginResponse->assertStatus(200);
         $this->assertNotNull($successLoginResponse->json('user'));

@@ -63,9 +63,6 @@ class Loan extends Model
         return $this->hasMany(Repayment::class);
     }
 
-    /**
-     * Association many to one, many loans can have same one client.
-     */
     public function User()
     {
         return $this->hasOne(User::class, 'id', 'user_id');

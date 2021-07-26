@@ -21,6 +21,7 @@ class RepaymentResource extends Resource
         $repayment = $this->resource;
         $array = $repayment->toArray();
         $array['user_id'] = $repayment->loan->user->id;
+        $array['loan'] = $repayment->loan;
         return $array;
     }
 }
